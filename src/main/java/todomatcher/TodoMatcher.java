@@ -15,6 +15,8 @@ public class TodoMatcher {
     private boolean inMultiComment = false;
     private int inMultiLineStartIndex = -1;
     private int inMultiLineEndIndex = -1;
+    List<String> matches = new ArrayList<>();
+
 
     private void listFilesRecursively(File root) throws FileNotFoundException {
         File[] listOfFilesAndDirectory = root.listFiles();
@@ -45,9 +47,7 @@ public class TodoMatcher {
         listFilesRecursively(new File(userDir));
     }
 
-    //TODO refactor this method to reduce complexity
     public void matchFile(File file) throws FileNotFoundException {
-        List<String> matches = new ArrayList<>();
         Scanner in = new Scanner(new FileReader(file.getPath()));
         StringBuilder sb = new StringBuilder();
 
@@ -60,35 +60,41 @@ public class TodoMatcher {
 
         for (int i = 0; i < sb.length(); i++) {
             isInString(sb, i);
-
             String lastTwoSymbols = i >= 2 ? sb.substring(i-2, i) : "";
-            if (lastTwoSymbols.equals("//") && !inString && !inLineComment){
-                //get till end of line
-                inLineComment = true;
-                inLineCommentStartIndex = i-2;
-            } else if (inLineComment && sb.charAt(i) == '\n'){
-                inLineComment = false;
-                inLineCommentEndIndex = i;
-                String commentLine = sb.substring(inLineCommentStartIndex, inLineCommentEndIndex);
-                if (commentLine.contains("TODO")) {
-                    matches.add(commentLine);
-                }
-            }
-
-            if (lastTwoSymbols.equals("/*") && !inString){
-                inMultiComment = true;
-                inMultiLineStartIndex = i-2;
-            } else if (inMultiComment && lastTwoSymbols.equals("*/")){
-                inMultiComment = false;
-                inMultiLineEndIndex = i;
-                String commentLine = sb.substring(inMultiLineStartIndex, inMultiLineEndIndex);
-                if (commentLine.contains("TODO")) {
-                    matches.add(commentLine);
-                }
-            }
+            isCharInLineComment(lastTwoSymbols, sb, i);
+            isCharInMultiComment(lastTwoSymbols, sb, i);
         }
 
         matches.forEach(System.out::println);
+    }
+
+    private void isCharInLineComment(String lastTwoSymbols, StringBuilder sb, int i){
+        if (lastTwoSymbols.equals("//") && !inString && !inLineComment){
+            //get till end of line
+            inLineComment = true;
+            inLineCommentStartIndex = i-2;
+        } else if (inLineComment && sb.charAt(i) == '\n'){
+            inLineComment = false;
+            inLineCommentEndIndex = i;
+            String commentLine = sb.substring(inLineCommentStartIndex, inLineCommentEndIndex);
+            if (commentLine.contains("TODO")) {
+                matches.add(commentLine);
+            }
+        }
+    }
+
+    private void isCharInMultiComment(String lastTwoSymbols, StringBuilder sb, int i){
+        if (lastTwoSymbols.equals("/*") && !inString){
+            inMultiComment = true;
+            inMultiLineStartIndex = i-2;
+        } else if (inMultiComment && lastTwoSymbols.equals("*/")){
+            inMultiComment = false;
+            inMultiLineEndIndex = i;
+            String commentLine = sb.substring(inMultiLineStartIndex, inMultiLineEndIndex);
+            if (commentLine.contains("TODO")) {
+                matches.add(commentLine);
+            }
+        }
     }
 
     private void isInString(StringBuilder sb, int i) {
